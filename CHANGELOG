@@ -1,0 +1,30 @@
+[1.0.10] 13/03/2017
+- Utiliza variável de ambiente HTTPS_PROXY para definição de URL e Porta de proxy
+
+[1.0.9] 23/02/2017
+- Faz log dos headers de debug do facebook
+- Reenvia para a fila Rabbit (nack) requests com erro 502 (bad gateway)
+
+[1.0.8] 21/02/2017
+- Melhorias nos logs
+
+[1.0.7] 20/02/2017
+- Faz o log do erro do consumer
+- Registra ao menos um worker (cpu) de consumo
+
+[1.0.6] 17/02/2017
+- Passando objeto do request original para o master
+
+[1.0.5] 17/02/2017
+- Repassa o retorno de um request para o master, que irá repassar para
+  uma função callback (se definida pelo script que chamou o consume())
+
+[1.0.4] 16/02/2017
+- Mata os workers quando o master morre
+- Cria esse CHANGELOG
+
+[1.0.1] 15/02/2017
+- Implementa configuração de proxy no request
+
+[1.0.0] 13/02/2017
+- Primeira versão

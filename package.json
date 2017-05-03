@@ -1,0 +1,16 @@
+{
+  "name": "requestmq",
+  "version": "1.0.10",
+  "description": "Efetua requests utilizando fila RabbitMQ",
+  "main": "requestmq.js",
+  "scripts": {
+    "test": "exit 1;",
+    "start": "node app.js"
+  },
+  "author": "Gustavo Paes <gpaes@uolinc.com>",
+  "license": "ISC",
+  "dependencies": {
+    "amqplib": "^0.5.1",
+    "https-proxy-agent": "^1.0.0"
+  }
+}
