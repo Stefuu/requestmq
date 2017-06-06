@@ -15,7 +15,7 @@ let TOTAL_REQUESTS = 0;
 let proxyConfig = process.env.HTTPS_PROXY || '';
 
 const connect = config => {
-  if(config.proxy) {
+  if(config.proxy && config.proxy.url) {
     // sobrescreve a configuração inicial do proxy pela config
     // do utilizador
     proxyConfig = `${config.proxy.url}:${config.proxy.port}`;

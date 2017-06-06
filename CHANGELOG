@@ -1,3 +1,6 @@
+[1.0.11] 06/06/2017
+- Verifica se foi passado "url" do proxy
+
 [1.0.10] 13/03/2017
 - Utiliza variável de ambiente HTTPS_PROXY para definição de URL e Porta de proxy
 
