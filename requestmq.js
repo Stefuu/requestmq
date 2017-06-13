@@ -142,22 +142,38 @@ class RequestMQ {
 
     // cria os workers de consumo
     for(let i = 0; i < CPUS; i++) {
-      let worker = {
-        id: i,
-        busy: false,
-        fork: fork(joinPath(__dirname, './consumer.js')),
-      };
-
-      worker.fork.send(this.config);
-
-      if(typeof cb == 'function') {
-        worker.fork.on('message', cb);
-      }
-
-      this.workers.push(worker);
+      this.createFork(cb, i);
     }
 
     return Promise.resolve(this);
+  }
+
+  createFork(cb, id) {
+    console.log(`[requestmq] criando worker ${id}`);
+
+    let worker = {
+      id: id,
+      busy: false,
+      fork: fork(joinPath(__dirname, './consumer.js')),
+    };
+
+    let reconnectFork = (code, signal) => {
+      console.log(`[requestmq] worker ${id} desconectado code: ${code} / signal: ${signal}`);
+      worker.fork.kill();
+
+      this.workers = this.workers.filter(w => w.id != id);
+
+      this.createFork(cb, id);
+    };
+
+    worker.fork.on('exit', (code, signal) => { reconnectFork(code, signal); });
+    worker.fork.send(this.config);
+
+    if(typeof cb == 'function') {
+      worker.fork.on('message', cb);
+    }
+
+    this.workers.push(worker);
   }
 
   stopConsume() {

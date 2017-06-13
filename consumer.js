@@ -84,10 +84,12 @@ const post = data => {
 
         switch(res.statusCode) {
           case 502:
+            console.log(`[requestmq] ${data.id}\tsending reject`);
             reject(body);
             break;
 
           default:
+            console.log(`[requestmq] ${data.id}\tsending resolve`);
             resolve(body);
             break;
         }
@@ -132,7 +134,23 @@ const request = data => {
 };
 
 process.on('message', m => {
+  console.log(`[requestmq] Iniciando worker ${process.pid}`);
   connect(m).then(consume);
+});
+
+process.on('disconnect', () => {
+  console.log(`[requestmq] woker ${process.pid}: processo pai deu disconnect`);
+  process.kill(process.pid);
+});
+
+process.on('close', () => {
+  console.log(`[requestmq] woker ${process.pid}: processo pai deu close`);
+  process.kill(process.pid);
+});
+
+process.on('exit', () => {
+  console.log(`[requestmq] woker ${process.pid}: processo pai deu exit`);
+  process.kill(process.pid);
 });
 
 setInterval(() => {
