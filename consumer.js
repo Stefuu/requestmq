@@ -139,17 +139,17 @@ process.on('message', m => {
 });
 
 process.on('disconnect', () => {
-  console.log(`[requestmq] woker ${process.pid}: processo pai deu disconnect`);
+  console.log(`[requestmq] worker ${process.pid}: disconnect event`);
   process.kill(process.pid);
 });
 
 process.on('close', () => {
-  console.log(`[requestmq] woker ${process.pid}: processo pai deu close`);
+  console.log(`[requestmq] worker ${process.pid}: close event`);
   process.kill(process.pid);
 });
 
 process.on('exit', () => {
-  console.log(`[requestmq] woker ${process.pid}: processo pai deu exit`);
+  console.log(`[requestmq] worker ${process.pid}: exit event`);
   process.kill(process.pid);
 });
 
