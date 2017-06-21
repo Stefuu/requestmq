@@ -134,7 +134,7 @@ const request = data => {
 };
 
 process.on('message', m => {
-  console.log(`[requestmq] Iniciando worker ${process.pid}`);
+  console.log(`[requestmq] Iniciando worker ${process.pid}`, m);
   connect(m).then(consume);
 });
 
