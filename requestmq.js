@@ -157,16 +157,21 @@ class RequestMQ {
       fork: fork(joinPath(__dirname, './consumer.js')),
     };
 
-    let reconnectFork = (code, signal) => {
+    let reconnectFork = (pid, code, signal) => {
       console.log(`[requestmq] worker ${id} desconectado code: ${code} / signal: ${signal}`);
-      worker.fork.kill();
+      try {
+        console.log(`[requestmq] trying to kill process ${pid}`);
+        worker.fork.kill(pid);
+      } catch(err) {
+        console.log(`[requestmq] error on killing`, err);
+      }
 
       this.workers = this.workers.filter(w => w.id != id);
 
       this.createFork(cb, id);
     };
 
-    worker.fork.on('exit', (code, signal) => { reconnectFork(code, signal); });
+    worker.fork.on('exit', (code, signal) => { reconnectFork(worker.fork.pid, code, signal); });
     worker.fork.send(this.config);
 
     if(typeof cb == 'function') {
