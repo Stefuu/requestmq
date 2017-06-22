@@ -161,7 +161,7 @@ class RequestMQ {
       console.log(`[requestmq] worker ${id} desconectado code: ${code} / signal: ${signal}`);
       try {
         console.log(`[requestmq] trying to kill process ${pid}`);
-        worker.fork.kill(pid);
+        process.kill(pid);
       } catch(err) {
         console.log(`[requestmq] error on killing`, err);
       }
