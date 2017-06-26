@@ -5,6 +5,9 @@ const https = require('https');
 const http = require('http');
 const parseUrl = require('url').parse;
 
+const CONSUME = 1;
+const DISCONNECT = 2;
+
 const config = require('./package.json').config;
 const httpsProxyAgent = require('https-proxy-agent');
 
@@ -13,6 +16,8 @@ let TOTAL_REQUESTS = 0;
 
 // Configurações do proxy
 let proxyConfig = process.env.HTTPS_PROXY || '';
+
+let connQueue;
 
 const connect = config => {
   if(config.proxy && config.proxy.url) {
@@ -34,6 +39,8 @@ const parseContent = content => {
 }
 
 const consume = queue => {
+  connQueue = queue;
+
   if(queue.channel) {
     return queue.channel.consume(queue.config.queue, message => {
       let data = parseContent(message.content);
@@ -133,24 +140,43 @@ const request = data => {
   }
 };
 
+const disconnect = () => {
+  try {
+    console.log('[requestmq] desconectando rabbitmq');
+    connQueue.conn.close();
+  } catch(err) {
+    console.log('[requestmq] erro ao desconectar da fila', err);
+  }
+};
+
 process.on('message', m => {
-  console.log(`[requestmq] Iniciando worker ${process.pid}`, m);
-  connect(m).then(consume);
+  console.log(`[requestmq] worker ${process.pid} recebeu mensagem `, m);
+  switch(m.action) {
+    case CONSUME:
+      connect(m.data).then(consume);
+    break;
+
+    case DISCONNECT:
+      disconnect();
+    break;
+  }
 });
 
 process.on('disconnect', () => {
   console.log(`[requestmq] worker ${process.pid}: disconnect event`);
+  disconnect();
   process.kill(process.pid);
 });
 
 process.on('close', () => {
   console.log(`[requestmq] worker ${process.pid}: close event`);
+  disconnect();
   process.kill(process.pid);
 });
 
 process.on('exit', () => {
   console.log(`[requestmq] worker ${process.pid}: exit event`);
-  process.kill(process.pid);
+  process.kill(process.pid, 'SIGKILL');
 });
 
 setInterval(() => {

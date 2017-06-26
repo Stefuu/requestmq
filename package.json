@@ -1,6 +1,6 @@
 {
   "name": "requestmq",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Efetua requests utilizando fila RabbitMQ",
   "main": "requestmq.js",
   "scripts": {
