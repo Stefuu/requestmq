@@ -1,13 +1,9 @@
 'use strict';
 
-const VERSION = require('./package.json').version;
 const CPUS = (require('os').cpus().length - 1) || 1;
 const fork = require('child_process').fork;
 const joinPath = require('path').join;
 const consumer = require('./consumer');
-
-const CONSUME = 1;
-const DISCONNECT = 2;
 
 const mqueue = require('amqplib');
 const MQ_CONN = undefined;
@@ -146,54 +142,22 @@ class RequestMQ {
 
     // cria os workers de consumo
     for(let i = 0; i < CPUS; i++) {
-      this.createFork(cb, i);
+      let worker = {
+        id: i,
+        busy: false,
+        fork: fork(joinPath(__dirname, './consumer.js')),
+      };
+
+      worker.fork.send(this.config);
+
+      if(typeof cb == 'function') {
+        worker.fork.on('message', cb);
+      }
+
+      this.workers.push(worker);
     }
 
     return Promise.resolve(this);
-  }
-
-  createFork(cb, id) {
-    console.log(`[requestmq] criando worker ${id}`);
-
-    let worker = {
-      id: id,
-      busy: false,
-      fork: fork(joinPath(__dirname, './consumer.js')),
-    };
-
-    let reconnectFork = (pid, code, signal) => {
-      console.log(`[requestmq] worker ${id} desconectado code: ${code} / signal: ${signal}`);
-      try {
-        if(worker.fork.connected == true) {
-          console.log(`[requestmq] worker ${pid} enviando disconnect`);
-          worker.fork.send({
-            action: DISCONNECT
-          });
-        } else {
-          console.log(`[requestmq] worker ${pid} não possui canal de comunicação`, worker.fork);
-        }
-      } catch(err) {
-        console.log(`[requestmq] error on killing`, err);
-      }
-
-      // remove o worker que foi desconectado da lista
-      this.workers = this.workers.filter(w => w.id != id);
-
-      this.createFork(cb, id);
-    };
-
-    worker.fork.on('exit', (code, signal) =>  reconnectFork(worker.fork.pid, code, signal));
-
-    worker.fork.send({
-      action: CONSUME,
-      data: this.config
-    });
-
-    if(typeof cb == 'function') {
-      worker.fork.on('message', cb);
-    }
-
-    this.workers.push(worker);
   }
 
   stopConsume() {
@@ -299,7 +263,4 @@ class RequestMQ {
   }
 };
 
-module.exports = (host, config) => {
-  console.log(`[requestmq] new instance, version: ${VERSION}`);
-  return new RequestMQ(host, config);
-};
+module.exports = (host, config) => new RequestMQ(host, config);
