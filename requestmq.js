@@ -221,6 +221,7 @@ class RequestMQ {
 
     // já chegou ao limite de publicações paralelas
     if(this.publish_workers_working >= MAX_SEND_MQ) {
+      console.log(`[requestmq] máximo de envios (${MAX_SEND_MQ}) paralelos atingido`);
       return false;
     }
 
