@@ -1,5 +1,7 @@
 'use strict';
 
+const debug = require('debug')('[requestmq] Worker ' + process.pid);
+const error = require('debug')('[requestmq] Error');
 const requestmq = require('./requestmq.js');
 const https = require('https');
 const http = require('http');
@@ -28,7 +30,7 @@ const parseContent = content => {
   try {
     return JSON.parse(content.toString());
   } catch(err) {
-    console.error('[requestmq] Erro ao executar JSON.parse em mensagem do Rabbit', err);
+    error('Erro ao executar JSON.parse em mensagem do Rabbit', err);
     return null;
   }
 }
@@ -41,11 +43,11 @@ const consume = queue => {
 
       request(data)
         .then(() => {
-          console.log(`[requestmq] ${data.id}\trabbit ack`);
+          debug(`${data.id}\trabbit ack`);
           queue.channel.ack(message);
         })
         .catch((err) => {
-          console.log(`[requestmq] ${data.id}\trabbit nack`, err);
+          debug(`${data.id}\trabbit nack`, err);
           queue.channel.nack(message);
         });
     });
@@ -72,15 +74,15 @@ const post = data => {
       res.setEncoding('utf8');
       let body = '';
 
-      console.log(`[requestmq] ${data.id}\tstatus code: ${res.statusCode}.`);
+      debug(`${data.id}\tstatus code: ${res.statusCode}.`);
 
       res.on('data', chunck => {
         body += chunck;
       });
 
       res.on('end', () => {
-        console.log(`[requestmq] ${data.id}\tbody response: `, body);
-        console.log(`[requestmq] ${data.id}\theader response: `, res.headers);
+        debug(`${data.id}\tbody response: `, body);
+        debug(`${data.id}\theader response: `, res.headers);
 
         switch(res.statusCode) {
           case 502:
@@ -99,14 +101,14 @@ const post = data => {
     });
 
     req.on('error', function(err) {
-      console.log(`[requestmq] ${data.id}\terro no request:`, err);
+      debug(`${data.id}\terro no request:`, err);
 
       req.abort();
       reject(err.message);
     });
 
     if(data.post !== undefined) {
-      console.log(`[requestmq] ${data.id}\tpost body`, JSON.stringify(data.post));
+      debug(`${data.id}\tpost body`, JSON.stringify(data.post));
       req.write(JSON.stringify(data.post));
     }
 
@@ -115,7 +117,7 @@ const post = data => {
 };
 
 const request = data => {
-  console.log(`[requestmq] ${data.id}\tFaz request ${data.request.method} para ${data.request.hostname}`);
+  debug(`${data.id}\tFaz request ${data.request.method} para ${data.request.hostname}`);
 
   if(data.request.method == 'POST') {
     return post(data)
@@ -137,7 +139,7 @@ process.on('message', m => {
 
 setInterval(() => {
   if(TOTAL_REQUESTS) {
-    console.log('[requestmq] tempo médio para publicações: %d (requests: %d)', TIME_REQUESTS / TOTAL_REQUESTS, TOTAL_REQUESTS);
+    debug('tempo médio para publicações: %d (requests: %d)', TIME_REQUESTS / TOTAL_REQUESTS, TOTAL_REQUESTS);
   }
 
   if(TOTAL_REQUESTS > Number.MAX_SAFE_INTEGER / 2) {

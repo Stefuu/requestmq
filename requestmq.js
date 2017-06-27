@@ -1,5 +1,7 @@
 'use strict';
 
+const debug = require('debug')('[requestmq]');
+const error = require('debug')('[requestmq] Error');
 const CPUS = (require('os').cpus().length - 1) || 1;
 const fork = require('child_process').fork;
 const joinPath = require('path').join;
@@ -47,25 +49,25 @@ class RequestMQ {
     // Registra evento para remover todos os workers quando a aplicação
     // for encerrada.
     process.on('uncaughtException', err => {
-      console.error('[requestmq] uncaughtException', err);
+      error('uncaughtException', err);
       //this.stopConsume();
       //process.exit(1);
     });
 
     process.on('exit', () => {
-      console.log('[requestmq] exit');
+      debug('exit');
       this.stopConsume();
       process.exit(0);
     });
 
     process.on('SIGINT', () => {
-      console.log('[requestmq] SIGINT');
+      debug('SIGINT');
       this.stopConsume();
       process.exit(0);
     });
 
     process.on('SIGTERM', () => {
-      console.log('[requestmq] SIGTERM');
+      debug('SIGTERM');
       this.stopConsume();
       process.exit(0);
     });
@@ -84,8 +86,8 @@ class RequestMQ {
           this.conn = undefined;
           this.channel = undefined;
 
-          console.error('Erro com a conexão rabbit');
-          console.error(err);
+          error('Erro com a conexão rabbit');
+          error(err);
 
           // zera o contador de requests paralelos para o rabbit
           // para que a fila começe novamente
@@ -116,13 +118,13 @@ class RequestMQ {
         });
       })
       .catch(err => {
-        console.error(`Erro ao conectar em amqp://${this.config.host}`);
-        console.error(err);
+        error(`Erro ao conectar em amqp://${this.config.host}`);
+        error(err);
 
         // tenta conectar novamente depois de alguns segundos
         setTimeout(this.connect.bind(this), 10 * 1000);
 
-        return Promise.resolve(this);
+        return Promise.reject(this);
         //process.exit(1);
       });
   }
@@ -191,8 +193,8 @@ class RequestMQ {
   sendToQueue(item) {
     item.id = uniqueId();
 
-    console.log(`[requestmq] ${item.id} adicionando item à fila local`);
-    console.log(`[requestmq] ${item.id}`, JSON.stringify(item));
+    debug(`${item.id} adicionando item à fila local`);
+    debug(`${item.id}`, JSON.stringify(item));
     this.queue.push(item);
 
     if(this.isSendingToQueue === false || this.sending_mq < MAX_SEND_MQ) {
@@ -221,7 +223,7 @@ class RequestMQ {
 
     // já chegou ao limite de publicações paralelas
     if(this.publish_workers_working >= MAX_SEND_MQ) {
-      console.log(`[requestmq] máximo de envios (${MAX_SEND_MQ}) paralelos atingido`);
+      debug(`máximo de envios (${MAX_SEND_MQ}) paralelos atingido`);
       return false;
     }
 
@@ -231,7 +233,7 @@ class RequestMQ {
     let item = this.queue.pop();
     let data = typeof item === 'string' ? item : JSON.stringify(item);
 
-    console.log(`[requestmq] ${item.id}\tiniciando envio de item para o rabbit`);
+    debug(`${item.id}\tiniciando envio de item para o rabbit`);
 
     // se não há conexão com o rabbit, faz a publicação
     // diretamente para o serviço
@@ -249,11 +251,11 @@ class RequestMQ {
 
     this.channel.sendToQueue(this.config.queue, new Buffer(data), {}, (err, ok) => {
       if(err) {
-        console.log(`[requestmq] ${item.id}\terro ao enviar item ao rabbitmq`, err);
+        debug(`${item.id}\terro ao enviar item ao rabbitmq`, err);
         this.sendToQueue(item);
       }
 
-      console.log(`[requestmq] ${item.id}\titem enviado para o rabbitmq com sucesso`);
+      debug(`${item.id}\titem enviado para o rabbitmq com sucesso`);
       this.delivered();
     });
   }
